@@ -1,0 +1,407 @@
+# Vibecode Production Prompt — Real‑Time Walkie‑Talkie Web App
+
+Design and build a **production‑ready real‑time walkie‑talkie web application** that works in modern browsers on **mobile and desktop**. The application simulates the experience of using a **radio frequency walkie‑talkie**, where users switch between frequencies to talk to different people.
+
+The system must support **live voice communication, frequency‑based discovery, groups, profiles, and scalable real‑time infrastructure.**
+
+The final system should feel like a **mix of Discord voice channels + classic radio walkie‑talkies.**
+
+---
+
+# Core Tech Stack
+
+Frontend
+
+* Next.js (App Router)
+* TypeScript / TSX
+* TailwindCSS
+* WebRTC voice streaming
+* WebSockets for real‑time state
+
+Backend
+
+* Node.js
+* Express or Fastify
+* WebSocket server
+* Redis for presence tracking
+* PostgreSQL for persistent data
+
+Voice Infrastructure
+
+Use **LiveKit or mediasoup** for scalable real‑time voice channels.
+
+---
+
+# Core Concept: Frequency System
+
+The entire app revolves around **radio frequencies**.
+
+A frequency represents a **voice channel**.
+
+Example
+
+32.48 MHz
+
+When multiple users tune to the same frequency they automatically join the **same real‑time voice conversation**.
+
+Switching frequency instantly moves the user to another voice channel.
+
+Frequency format
+
+XX.XX
+
+Range
+
+10.00 → 99.99
+
+Backend tracks
+
+* frequency
+* active users
+* mode
+
+---
+
+# Application Tabs
+
+The main interface contains **three tabs**.
+
+1. Public
+2. Duo
+3. Groups
+
+---
+
+# 1. Public Mode
+
+Public mode allows users to talk with **anyone on the same frequency**.
+
+Features
+
+* Frequency dial / input
+* Join instantly when switching
+* Live user count on each frequency
+* Push‑to‑talk or open mic option
+
+Example UI
+
+Frequency Display
+
+32.48
+
+Controls
+
+* Connect
+* Mute
+* Scan
+* Switch Frequency
+
+Users on the same frequency automatically join the **same WebRTC voice room**.
+
+---
+
+# 2. Duo Mode
+
+Duo mode creates a **private frequency between exactly two people**.
+
+User flow
+
+1. Generate a custom frequency
+2. Send invite link
+3. Only two participants allowed
+
+Example
+
+Invite link
+
+app.com/duo/44.18
+
+Rules
+
+* Max participants: 2
+* Locked frequency
+* Encrypted voice channel
+
+---
+
+# 3. Groups Mode
+
+Groups allow users to **save frequencies as presets**.
+
+A group is essentially a saved frequency with custom styling.
+
+Each group contains
+
+* group name
+* frequency
+* custom color
+* custom icon
+
+Example
+
+Gaming Squad
+44.92 MHz
+
+UI shows
+
+* icon
+* color
+* live connected users
+
+Example
+
+🎮 Gaming Squad
+44.92 MHz
+
+12 people online
+
+Group Creation Options
+
+* Group name
+* Frequency
+* Icon selector
+* Color selector
+
+---
+
+# Frequency Discovery System
+
+Add a **smart discovery system** that helps users find active conversations.
+
+This prevents empty channels and makes the platform feel alive.
+
+## Frequency Scanner
+
+Users can press **Scan** and the system automatically cycles frequencies until it finds activity.
+
+Example
+
+Scanning...
+
+28.11 → silent
+
+28.32 → silent
+
+28.51 → 4 users talking
+
+UI prompt
+
+Channel Found — 4 people talking
+
+Join button
+
+## Active Frequencies Feed
+
+Display currently active frequencies.
+
+Example
+
+Trending Frequencies
+
+32.48 MHz — 12 people talking
+
+44.12 MHz — 8 people talking
+
+17.77 MHz — 5 people talking
+
+Users can tap to join instantly.
+
+## Interest Based Frequencies
+
+During onboarding users choose interests.
+
+Examples
+
+* Gaming
+* Anime
+* Music
+* Tech
+* Study
+
+The backend recommends frequencies where similar users are active.
+
+Example
+
+Recommended Channels
+
+Gaming Lounge — 44.92 MHz
+
+Anime Talk — 13.77 MHz
+
+Coding Hub — 98.21 MHz
+
+## Friend Radar
+
+If a friend is talking somewhere the system shows
+
+"Abhinav is talking on 32.48 MHz"
+
+Tap to join.
+
+## Optional Global Frequency Map
+
+A real‑time map showing where conversations are happening.
+
+Example
+
+Tokyo → 22.11 MHz (8 users)
+
+London → 48.21 MHz (5 users)
+
+Delhi → 31.98 MHz (12 users)
+
+Users can tap a location to join the frequency.
+
+---
+
+# Profile System
+
+Each user has a unique profile.
+
+Fields
+
+* username
+* avatar
+* bio
+* interests
+* join date
+
+Additional features
+
+* friends list
+* follow users
+* see active frequency of friends
+
+---
+
+# Voice Channel UX
+
+Walkie‑talkie style interaction
+
+Options
+
+* Push to talk
+* Open mic
+* Noise suppression
+* Input device selection
+
+UI shows
+
+* live speaking indicator
+* number of users
+* voice activity rings
+
+---
+
+# Responsiveness
+
+The entire app must be **fully responsive for mobile and desktop browsers.**
+
+Mobile Design
+
+* Large frequency display
+* Bottom tab navigation
+* Large push‑to‑talk button
+* Gesture friendly controls
+
+Desktop Design
+
+* Sidebar navigation
+* Larger discovery panel
+* Multi‑column layout
+
+Breakpoints
+
+* Mobile
+* Tablet
+* Desktop
+
+Ensure the interface behaves like a **native mobile app when opened on phones.**
+
+---
+
+# Real Time Systems
+
+Use WebSockets to handle
+
+* user presence
+* frequency changes
+* group updates
+* active speaker updates
+
+Redis handles
+
+* active frequency counts
+* presence tracking
+
+Voice handled through
+
+LiveKit or mediasoup WebRTC rooms.
+
+---
+
+# Security
+
+Implement
+
+* authentication
+* rate limiting
+* spam protection
+* voice abuse reporting
+
+---
+
+# Folder Structure
+
+Frontend
+
+apps/web
+
+components
+
+voice
+
+frequency
+
+groups
+
+profiles
+
+Backend
+
+server
+
+routes
+
+voice
+
+presence
+
+frequencies
+
+---
+
+# Additional Advanced Features
+
+Add the following enhancements
+
+* Frequency bookmarks
+* Favorite channels
+* User blocking
+* Moderation tools
+* Join sound effects
+* Voice activity animation
+
+---
+
+# Goal
+
+Create a **production ready web platform where users can talk with strangers or friends using radio‑style frequencies in real time.**
+
+The experience should feel
+
+* instant
+* alive
+* social
+
+The final result should resemble a **modern internet walkie‑talkie network.**
