@@ -8,7 +8,7 @@ import { useAudioVolume } from "@/hooks/use-audio-volume";
 import { useGroups, useCreateGroup } from "@/hooks/use-groups";
 import { FrequencyDial } from "@/components/frequency-dial";
 import { ActiveUsersList } from "@/components/active-users-list";
-import { Copy, Plus, Hash, SignalHigh } from "lucide-react";
+import { Copy, Plus, Hash, SignalHigh, Radio } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function Dashboard() {
