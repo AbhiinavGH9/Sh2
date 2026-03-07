@@ -81,11 +81,18 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
+        neon: {
+          green: "hsl(111 100% 54%)",
+          orange: "hsl(36 100% 50%)",
+          red: "hsl(354 100% 50%)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
-        mono: ["var(--font-mono)"],
+        mono: ["Space Mono", "monospace"],
+        display: ["Orbitron", "sans-serif"],
+        body: ["Inter", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {
