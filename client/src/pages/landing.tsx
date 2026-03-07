@@ -18,7 +18,7 @@ export function LandingPage() {
         <div className="z-10 relative">
           <div className="flex items-center gap-3 text-primary mb-12">
             <Radio className="w-10 h-10 shadow-neon-green rounded-xl" />
-            <h1 className="font-display font-black text-3xl tracking-widest">VIBECODE</h1>
+            <h1 className="font-display font-black text-3xl tracking-widest uppercase">Sh2</h1>
           </div>
           
           <motion.div
@@ -51,7 +51,7 @@ export function LandingPage() {
         {/* Mobile Logo */}
         <div className="md:hidden flex items-center gap-2 text-primary mb-12">
           <Radio className="w-8 h-8 shadow-neon-green rounded-xl" />
-          <h1 className="font-display font-bold text-2xl tracking-widest">VIBECODE</h1>
+          <h1 className="font-display font-bold text-2xl tracking-widest uppercase">Sh2</h1>
         </div>
 
         <motion.div 

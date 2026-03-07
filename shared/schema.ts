@@ -17,7 +17,7 @@ export const profiles = pgTable("profiles", {
 export const groups = pgTable("groups", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  frequency: text("frequency").notNull(), // e.g., "32.48"
+  frequency: text("frequency").notNull().unique(), // e.g., "32.48"
   color: text("color"), // hex or tailwind class
   icon: text("icon"), // lucide icon name
   creatorId: varchar("creator_id").references(() => users.id),
