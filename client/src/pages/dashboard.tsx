@@ -84,7 +84,52 @@ export function Dashboard() {
       } 
     });
 
-    return () => {
+    const handleSignal = async (data: any) => {
+      if (data.fromUserId === authUser.id) return;
+      
+      let pc = peerConnections.current.get(data.fromUserId);
+      if (!pc) {
+        pc = new RTCPeerConnection({
+          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        });
+        peerConnections.current.set(data.fromUserId, pc);
+        
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            emit("webrtcSignal", {
+              type: "ice-candidate",
+              candidate: event.candidate,
+              targetUserId: data.fromUserId,
+              frequency
+            });
+          }
+        };
+
+        pc.ontrack = (event) => {
+          const audio = new Audio();
+          audio.srcObject = event.streams[0];
+          audio.play().catch(console.error);
+        };
+
+        if (localStream.current) {
+          localStream.current.getTracks().forEach(track => pc!.addTrack(track, localStream.current!));
+        }
+      }
+
+      if (data.type === 'offer') {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        emit("webrtcSignal", { type: "answer", sdp: answer, targetUserId: data.fromUserId, frequency });
+      } else if (data.type === 'answer') {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+      } else if (data.type === 'ice-candidate') {
+        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+      }
+    };
+
+    // We need a way to listen for webrtcSignal.
+    const cleanup = () => {
       peerConnections.current.forEach(pc => pc.close());
       peerConnections.current.clear();
       if (localStream.current) {
@@ -92,6 +137,8 @@ export function Dashboard() {
         localStream.current = null;
       }
     };
+
+    return cleanup;
   }, [isConnected, wsConnected, frequency, authUser, emit]);
 
   // Handle signaling messages

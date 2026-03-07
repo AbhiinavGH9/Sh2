@@ -16,6 +16,7 @@ interface FrequencyDialProps {
 
 export function FrequencyDial({ 
   frequency, 
+  onFrequencyChange,
   isConnected, 
   isMuted, 
   onConnect, 
