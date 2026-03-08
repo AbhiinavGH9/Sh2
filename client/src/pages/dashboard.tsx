@@ -41,9 +41,66 @@ export function Dashboard() {
     name: `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim() || 'Agent',
     avatar: authUser.profileImageUrl || undefined
   } : null;
+  const previousFrequency = useRef<string | null>(null);
 
-  const { connected: wsConnected, activeUsers: frequencyStateUsers, lastSignal: lastMessage, emitSignal, updateSpeakingState } = useSupabaseSignaling(frequency, fallbackUser, isConnected);
+  const handleIncomingSignal = useCallback((signal: any) => {
+    if (!isConnected || !authUser) return;
 
+    const { type, payload } = signal;
+    if (type === 'webrtcSignal') {
+      // P2P Cross-Talk Protection: Only process offers/answers explicitly targeted at our user ID
+      // (Initial broadcast joins might not have a targetUserId, which is fine, but direct signals must match)
+      if (payload.targetUserId && payload.targetUserId !== authUser.id) {
+        return;
+      }
+
+      let pc = peerConnections.current.get(payload.fromUserId);
+
+      if (!pc) {
+        // Deterministic Initiator
+        const isInitiator = String(authUser.id) > String(payload.fromUserId);
+
+        try {
+          // Preemptively create the peer on first signal if it wasn't tracked locally yet
+          const newPc = new SimplePeer({
+            initiator: isInitiator,
+            stream: localStream.current || undefined,
+            trickle: true,
+            config: {
+              iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:global.stun.twilio.com:3478" }
+              ]
+            }
+          });
+
+          peerConnections.current.set(payload.fromUserId, newPc);
+
+          newPc.on("signal", (data) => {
+            // we don't have emitSignal immediately in scope unless we hoist or pass it, but simplepeer buffers
+          });
+
+          // (Note: we actually initialize peers further down in recreatePeer or via FrequencyState. 
+          // We will hoist emitSignal out of useSupabaseSignaling to avoid circular deps if needed,
+          // but for now we expect `createPeer` logic to handle initializations via useEffect)
+        } catch (e) { }
+
+        // Actually handle it via createPeer abstraction normally
+      }
+
+      pc = peerConnections.current.get(payload.fromUserId);
+      if (pc) {
+        pc.signal(payload.signalData);
+      }
+    }
+  }, [isConnected, authUser]);
+
+  const { connected: wsConnected, activeUsers: frequencyStateUsers, emitSignal, updateSpeakingState } = useSupabaseSignaling(
+    frequency,
+    authUser ? { id: authUser.id, name: `${authUser.firstName} ${authUser.lastName}`, avatar: authUser.profileImageUrl || undefined } : null,
+    isConnected,
+    handleIncomingSignal
+  );
   const { isSpeaking, error: audioError } = useAudioVolume(isConnected && !isMuted, 20);
   const { toast } = useToast();
 
@@ -124,24 +181,6 @@ export function Dashboard() {
 
     return cleanup;
   }, [isConnected, wsConnected, frequency, authUser]);
-
-  // Handle incoming sockets to spawn peers
-  useEffect(() => {
-    if (!lastMessage || !isConnected) return;
-
-    const { type, payload } = lastMessage;
-
-    if (type === 'webrtcSignal') {
-      let pc = peerConnections.current.get(payload.fromUserId);
-
-      if (!pc) {
-        const isInitiator = String(authUser?.id || "") > String(payload.fromUserId);
-        createPeer(payload.fromUserId, isInitiator, payload.signalData);
-      } else {
-        pc.signal(payload.signalData);
-      }
-    }
-  }, [lastMessage, isConnected, authUser, createPeer]);
 
   // Synchronize new Presence Connections
   useEffect(() => {

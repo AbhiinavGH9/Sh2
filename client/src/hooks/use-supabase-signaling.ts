@@ -19,10 +19,14 @@ export type PresenceState = {
     isSpeaking: boolean;
 };
 
-export function useSupabaseSignaling(frequency: string, user: { id: string; name: string; avatar?: string } | null, isConnected: boolean) {
+export function useSupabaseSignaling(
+    frequency: string,
+    user: { id: string; name: string; avatar?: string } | null,
+    isConnected: boolean,
+    onSignal: (payload: SignalPayload) => void
+) {
     const [channel, setChannel] = useState<RealtimeChannel | null>(null);
     const [activeUsers, setActiveUsers] = useState<PresenceState[]>([]);
-    const [lastSignal, setLastSignal] = useState<SignalPayload | null>(null);
     const [connected, setConnected] = useState(false);
     const userKeyRef = useRef<string>("");
 
@@ -66,7 +70,7 @@ export function useSupabaseSignaling(frequency: string, user: { id: string; name
                 setActiveUsers(users);
             })
             .on("broadcast", { event: "webrtcSignal" }, (payload) => {
-                setLastSignal({
+                onSignal({
                     type: "webrtcSignal",
                     payload: payload.payload,
                 });
@@ -91,7 +95,7 @@ export function useSupabaseSignaling(frequency: string, user: { id: string; name
             setChannel(null);
             setConnected(false);
         };
-    }, [frequency, isConnected]);
+    }, [frequency, isConnected]); // Removed onSignal from deps entirely given its typically an unstable callback
 
     const emitSignal = useCallback(
         (targetUserId: string, signalData: any) => {
@@ -124,5 +128,5 @@ export function useSupabaseSignaling(frequency: string, user: { id: string; name
         [channel, user]
     );
 
-    return { connected, activeUsers, lastSignal, emitSignal, updateSpeakingState };
+    return { connected, activeUsers, emitSignal, updateSpeakingState };
 }
