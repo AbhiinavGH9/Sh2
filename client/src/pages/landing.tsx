@@ -35,10 +35,7 @@ export function LandingPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin
-      }
+      provider: 'google'
     });
     setIsLoading(false);
     if (error) toast({ title: "Google Sign In Failed", description: error.message, variant: "destructive" });

@@ -2,7 +2,7 @@ import type { Express, RequestHandler } from "express";
 import { AppConfig } from "../shared/app.config";
 import { storage } from "./storage";
 import { createClient } from "@supabase/supabase-js";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
@@ -91,6 +91,23 @@ export function registerAuthRoutes(app: Express): void {
         } catch (error) {
             console.error("Error updating user data:", error);
             res.status(500).json({ message: "Failed to update user" });
+        }
+    });
+
+    app.delete("/api/auth/account", isAuthenticated, async (req: any, res) => {
+        try {
+            const userId = req.user.claims.sub;
+
+            // Delete from public schema to trigger group foreign key cascades safely
+            await db.delete(users).where(eq(users.id, userId));
+
+            // Execute destruction against the secure auth schema to wipe the actual login credentials
+            await pool.query('DELETE FROM auth.users WHERE id = $1', [userId]);
+
+            res.status(200).json({ message: "Account explicitly deleted" });
+        } catch (error) {
+            console.error("Error deleting user account:", error);
+            res.status(500).json({ message: "Failed to purge user from the system" });
         }
     });
 }

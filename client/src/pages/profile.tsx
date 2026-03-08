@@ -6,13 +6,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { useProfile, useUpdateProfile, useUpdateUser } from "@/hooks/use-profiles";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Settings2, Save } from "lucide-react";
+import { Settings2, Save, AlertTriangle, KeyRound } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 export function ProfilePage() {
   const { user } = useAuth();
   const { data: profile, isLoading } = useProfile();
   const updateProfile = useUpdateProfile();
   const updateUser = useUpdateUser();
+  const { toast } = useToast();
 
   const [bio, setBio] = useState("");
   const [interestInput, setInterestInput] = useState("");
@@ -20,6 +23,13 @@ export function ProfilePage() {
 
   const [firstName, setFirstName] = useState("");
   const [profileImageUrl, setProfileImageUrl] = useState("");
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -50,6 +60,50 @@ export function ProfilePage() {
     updateProfile.mutate({ bio, interests });
     if (firstName !== user?.firstName || profileImageUrl !== user?.profileImageUrl) {
       updateUser.mutate({ firstName, profileImageUrl });
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword || newPassword !== confirmPassword) {
+      return toast({ title: "Error", description: "Passwords do not match or are empty.", variant: "destructive" });
+    }
+    setIsUpdatingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setIsUpdatingPassword(false);
+
+    if (error) {
+      toast({ title: "Update Failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Password Updated", description: "Your security passphrase has been changed successfully." });
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "sad_im_going!") return;
+    setIsDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session found.");
+
+      const res = await fetch("/api/auth/account", {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || "Failed to delete account");
+      }
+
+      await supabase.auth.signOut();
+      window.location.href = "/";
+    } catch (err: any) {
+      toast({ title: "Deletion Failed", description: err.message, variant: "destructive" });
+      setIsDeleting(false);
     }
   };
 
@@ -147,6 +201,81 @@ export function ProfilePage() {
             >
               <Save className="w-4 h-4 mr-2" />
               {updateProfile.isPending || updateUser.isPending ? "TRANSMITTING..." : "SAVE PARAMETERS"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+        <Card className="glass-panel border-white/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-accent" />
+              <CardTitle className="font-display tracking-widest text-sm text-muted-foreground">SECURITY UPDATE</CardTitle>
+            </div>
+            <CardDescription className="text-xs">Update your operational passphrase.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-mono text-muted-foreground">NEW PASSPHRASE</label>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="bg-background border-white/10 focus-visible:ring-accent rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-mono text-muted-foreground">CONFIRM PASSPHRASE</label>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="bg-background border-white/10 focus-visible:ring-accent rounded-xl"
+              />
+            </div>
+            <Button
+              onClick={handleUpdatePassword}
+              disabled={isUpdatingPassword || !newPassword}
+              className="w-full mt-4 rounded-xl bg-accent hover:bg-accent/80 text-accent-foreground font-bold shadow-neon-orange"
+            >
+              {isUpdatingPassword ? "UPDATING..." : "CHANGE PASSPHRASE"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-panel border-destructive/20 bg-destructive/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-10 transition-opacity pointer-events-none">
+            <AlertTriangle className="w-48 h-48 text-destructive" />
+          </div>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive animate-pulse" />
+              <CardTitle className="font-display tracking-widest text-sm text-destructive">DANGER ZONE</CardTitle>
+            </div>
+            <CardDescription className="text-xs text-destructive/70">
+              Permanently purge your account, profiles, and active frequencies. This action cannot be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 mt-2">
+            <div className="space-y-2 relative z-10">
+              <label className="text-xs font-mono text-destructive/70">TYPE "sad_im_going!" TO VERIFY</label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="sad_im_going!"
+                className="bg-background/50 border-destructive/30 focus-visible:ring-destructive rounded-xl"
+              />
+            </div>
+            <Button
+              onClick={handleDeleteAccount}
+              disabled={isDeleting || deleteConfirmText !== "sad_im_going!"}
+              variant="destructive"
+              className="w-full mt-4 rounded-xl font-bold font-mono tracking-widest relative z-10"
+            >
+              {isDeleting ? "PURGING..." : "DELETE ACCOUNT"}
             </Button>
           </CardContent>
         </Card>
