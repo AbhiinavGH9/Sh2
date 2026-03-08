@@ -33,9 +33,9 @@ If you prefer to configure it manually through the dashboard:
 1. Go to your Render Dashboard and create a **New Web Service**.
 2. Connect your GitHub repository.
 3. Use the following settings:
-   - **Name**: `sh2-audio-streamer`
+   - **Name**: `    `
    - **Environment**: `Node`
-   - **Build Command**: `npm install && npm run build`
+   - **Build Command**: `npm install --include=dev && npm run build`
    - **Start Command**: `npm start`
 4. Expand **Advanced** and add the following Environment Variables:
 
