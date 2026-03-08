@@ -48,9 +48,9 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
         // Attach user info to request
         (req as any).user = { claims: { sub: user.id }, email: user.email, user_metadata: user.user_metadata };
         return next();
-    } catch (err) {
+    } catch (err: any) {
         console.error("Auth Middleware Error:", err);
-        return res.status(500).json({ message: "Internal server error during authentication" });
+        return res.status(500).json({ message: "Internal server error during authentication", error: err.message });
     }
 };
 
@@ -67,9 +67,9 @@ export function registerAuthRoutes(app: Express): void {
             const [dbUser] = await db.select().from(users).where(eq(users.id, userId));
 
             res.json(dbUser || { id: userId, email: req.user.email });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error fetching user data:", error);
-            res.status(500).json({ message: "Failed to fetch user" });
+            res.status(500).json({ message: "Failed to fetch user", error: error.message });
         }
     });
 
