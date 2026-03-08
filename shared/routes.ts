@@ -76,14 +76,19 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 
 export const ws = {
   send: {
-    joinFrequency: z.object({ frequency: z.string() }),
+    joinFrequency: z.object({
+      frequency: z.string(),
+      userInfo: z.object({
+        id: z.string(),
+        name: z.string(),
+        avatar: z.string().optional().nullable()
+      }).optional()
+    }),
     leaveFrequency: z.object({ frequency: z.string() }),
     speaking: z.object({ isSpeaking: z.boolean() }),
     webrtcSignal: z.object({
       targetUserId: z.string().optional(),
-      type: z.enum(["offer", "answer", "ice-candidate"]),
-      sdp: z.any().optional(),
-      candidate: z.any().optional(),
+      signalData: z.any(),
       frequency: z.string()
     })
   },
@@ -97,13 +102,12 @@ export const ws = {
     userSpeaking: z.object({ userId: z.string(), isSpeaking: z.boolean() }),
     webrtcSignal: z.object({
       fromUserId: z.string(),
-      type: z.enum(["offer", "answer", "ice-candidate"]),
-      sdp: z.any().optional(),
-      candidate: z.any().optional()
+      signalData: z.any()
     })
   }
 };
 
 // Types
 export type ProfileResponse = z.infer<typeof api.profiles.get.responses[200]>;
+export type UpdateProfileRequest = z.infer<typeof api.profiles.update.input>;
 export type GroupResponse = z.infer<typeof api.groups.create.responses[201]>;

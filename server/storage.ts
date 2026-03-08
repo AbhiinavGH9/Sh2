@@ -14,10 +14,11 @@ export interface IStorage {
   // Profiles
   getProfile(userId: string): Promise<Profile | undefined>;
   updateProfile(userId: string, updates: UpdateProfileRequest): Promise<Profile>;
-  
+
   // Groups
   getGroups(): Promise<Group[]>;
   createGroup(group: CreateGroupRequest & { creatorId: string }): Promise<Group>;
+  deleteGroup(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -29,7 +30,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateProfile(userId: string, updates: UpdateProfileRequest): Promise<Profile> {
     const existing = await this.getProfile(userId);
-    
+
     if (!existing) {
       // Create if doesn't exist
       const [newProfile] = await db.insert(profiles)
@@ -50,7 +51,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(profiles.userId, userId))
       .returning();
-      
+
     return updated;
   }
 
@@ -62,6 +63,11 @@ export class DatabaseStorage implements IStorage {
   async createGroup(groupData: CreateGroupRequest & { creatorId: string }): Promise<Group> {
     const [group] = await db.insert(groups).values(groupData).returning();
     return group;
+  }
+
+  async deleteGroup(id: number): Promise<boolean> {
+    const [deleted] = await db.delete(groups).where(eq(groups.id, id)).returning();
+    return !!deleted;
   }
 }
 

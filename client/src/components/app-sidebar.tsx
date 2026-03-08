@@ -30,20 +30,20 @@ export function AppSidebar() {
           <div className="flex items-center gap-3 text-primary mb-6">
             <Disc className="w-8 h-8 animate-[spin_4s_linear_infinite] shadow-neon-green rounded-full" />
             <div>
-              <h2 className="font-display font-bold text-xl tracking-wider leading-none">VIBECODE</h2>
+              <h2 className="font-display font-bold text-xl tracking-wider leading-none">Sh2</h2>
               <p className="text-[10px] font-mono text-primary/70 uppercase">Comms Link v2.0</p>
             </div>
           </div>
         </div>
-        
+
         <SidebarGroup>
           <SidebarGroupLabel className="font-mono text-xs text-muted-foreground uppercase tracking-wider">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
+                  <SidebarMenuButton
+                    asChild
                     isActive={location === item.url}
                     className="hover:bg-primary/10 hover:text-primary transition-all duration-200"
                   >
@@ -69,15 +69,15 @@ export function AppSidebar() {
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col overflow-hidden">
-              <span className="text-sm font-bold truncate text-foreground">{user?.firstName || user?.username || "Agent"}</span>
+              <span className="text-sm font-bold truncate text-foreground">{user?.firstName || "Agent"}</span>
               <span className="text-[10px] font-mono text-primary flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
                 ACTIVE
               </span>
             </div>
           </div>
-          <button 
-            onClick={() => logout()} 
+          <button
+            onClick={() => logout()}
             className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
             title="Log Out"
           >

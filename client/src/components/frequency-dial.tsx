@@ -14,25 +14,25 @@ interface FrequencyDialProps {
   onScan: () => void;
 }
 
-export function FrequencyDial({ 
-  frequency, 
+export function FrequencyDial({
+  frequency,
   onFrequencyChange,
-  isConnected, 
-  isMuted, 
-  onConnect, 
-  onDisconnect, 
+  isConnected,
+  isMuted,
+  onConnect,
+  onDisconnect,
   onToggleMute,
-  onScan 
+  onScan
 }: FrequencyDialProps) {
-  
+
   return (
     <div className="relative p-8 rounded-3xl glass-panel flex flex-col items-center justify-center overflow-hidden">
       {/* Background glow when connected */}
-      <motion.div 
+      <motion.div
         className="absolute inset-0 opacity-20 pointer-events-none"
-        animate={{ 
-          background: isConnected && !isMuted 
-            ? "radial-gradient(circle at center, hsl(111 100% 54% / 0.5) 0%, transparent 70%)" 
+        animate={{
+          background: isConnected && !isMuted
+            ? "radial-gradient(circle at center, hsl(111 100% 54% / 0.5) 0%, transparent 70%)"
             : "radial-gradient(circle at center, transparent 0%, transparent 100%)"
         }}
         transition={{ duration: 0.5 }}
@@ -44,37 +44,92 @@ export function FrequencyDial({
 
       {/* Main Digital Display */}
       <div className="flex items-center justify-center gap-2 mb-8 group">
-        <div className="flex items-center">
-          <Input
-            type="number"
-            value={frequency.split('.')[0]}
-            onChange={(e) => {
-              const parts = frequency.split('.');
-              onFrequencyChange(`${e.target.value}.${parts[1] || '00'}`);
-            }}
-            className="w-24 md:w-32 text-4xl md:text-6xl font-display font-black bg-transparent border-none text-right focus-visible:ring-0 p-0 h-auto"
-            disabled={isConnected}
-          />
-          <span className="text-4xl md:text-6xl font-display font-black">.</span>
-          <Input
-            type="number"
-            value={frequency.split('.')[1]}
-            onChange={(e) => {
-              const parts = frequency.split('.');
-              onFrequencyChange(`${parts[0] || '00'}.${e.target.value.slice(0, 2)}`);
-            }}
-            className="w-16 md:w-24 text-4xl md:text-6xl font-display font-black bg-transparent border-none text-left focus-visible:ring-0 p-0 h-auto"
-            disabled={isConnected}
-          />
+        <div className="flex items-center gap-1">
+          {/* Integer Part */}
+          <div className="flex flex-col items-center">
+            <button
+              onClick={() => {
+                const parts = frequency.split('.');
+                let val = parseInt(parts[0] || '0', 10) + 1;
+                onFrequencyChange(`${val}.${parts[1] || '00'}`);
+              }}
+              disabled={isConnected}
+              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:hover:text-muted-foreground transition-colors outline-none"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6" /></svg>
+            </button>
+            <input
+              type="text"
+              value={frequency.split('.')[0]}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, ''); // numbers only
+                onFrequencyChange(`${val || '0'}.${frequency.split('.')[1] || '00'}`);
+              }}
+              disabled={isConnected}
+              className={`w-28 md:w-36 text-center text-5xl md:text-7xl font-display font-black tracking-tighter bg-transparent border-none outline-none focus:ring-0 p-0 ${isConnected ? 'text-foreground/80' : 'text-foreground'}`}
+            />
+            <button
+              onClick={() => {
+                const parts = frequency.split('.');
+                let val = parseInt(parts[0] || '0', 10) - 1;
+                if (val < 1) val = 1; // don't go below 1
+                onFrequencyChange(`${val}.${parts[1] || '00'}`);
+              }}
+              disabled={isConnected}
+              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:hover:text-muted-foreground transition-colors outline-none"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+          </div>
+
+          <span className="text-4xl md:text-6xl font-display font-black self-center mb-6 text-primary">.</span>
+
+          {/* Fractional Part */}
+          <div className="flex flex-col items-center">
+            <button
+              onClick={() => {
+                const parts = frequency.split('.');
+                let val = parseInt(parts[1] || '0', 10) + 5;
+                if (val > 95) val = 0;
+                onFrequencyChange(`${parts[0]}.${val.toString().padStart(2, '0')}`);
+              }}
+              disabled={isConnected}
+              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:hover:text-muted-foreground transition-colors outline-none"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6" /></svg>
+            </button>
+            <input
+              type="text"
+              value={frequency.split('.')[1] || '00'}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+                onFrequencyChange(`${frequency.split('.')[0] || '0'}.${val}`);
+              }}
+              disabled={isConnected}
+              className={`w-20 md:w-28 text-center text-5xl md:text-7xl font-display font-black tracking-tighter bg-transparent border-none outline-none focus:ring-0 p-0 ${isConnected ? 'text-foreground/80' : 'text-foreground'}`}
+            />
+            <button
+              onClick={() => {
+                const parts = frequency.split('.');
+                let val = parseInt(parts[1] || '0', 10) - 5;
+                if (val < 0) val = 95;
+                onFrequencyChange(`${parts[0]}.${val.toString().padStart(2, '0')}`);
+              }}
+              disabled={isConnected}
+              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:hover:text-muted-foreground transition-colors outline-none"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+          </div>
         </div>
-        <span className="text-xl md:text-2xl font-mono opacity-50 mt-4">MHz</span>
+        <span className="text-xl md:text-2xl font-mono opacity-50 self-center mb-6 ml-2">MHz</span>
       </div>
 
       {/* Controls */}
       <div className="flex items-center gap-4 z-10">
         {!isConnected ? (
           <>
-            <Button 
+            <Button
               size="lg"
               className="bg-primary hover:bg-primary/80 text-primary-foreground font-bold text-lg px-8 rounded-full shadow-neon-green"
               onClick={onConnect}
@@ -93,21 +148,20 @@ export function FrequencyDial({
           </>
         ) : (
           <>
-            <Button 
+            <Button
               size="lg"
               variant={isMuted ? "outline" : "default"}
-              className={`rounded-full px-8 font-bold text-lg transition-all ${
-                !isMuted 
-                  ? "bg-primary hover:bg-primary/80 text-primary-foreground shadow-neon-green" 
-                  : "border-accent text-accent hover:bg-accent/10 shadow-neon-orange"
-              }`}
+              className={`rounded-full px-8 font-bold text-lg transition-all ${!isMuted
+                ? "bg-primary hover:bg-primary/80 text-primary-foreground shadow-neon-green"
+                : "border-accent text-accent hover:bg-accent/10 shadow-neon-orange"
+                }`}
               onClick={onToggleMute}
             >
               {isMuted ? <MicOff className="w-5 h-5 mr-2" /> : <Mic className="w-5 h-5 mr-2" />}
               {isMuted ? "MUTED" : "LIVE"}
             </Button>
-            
-            <Button 
+
+            <Button
               size="lg"
               variant="outline"
               className="rounded-full px-8 font-bold text-lg border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive shadow-[0_0_15px_rgba(255,0,0,0.1)] transition-all hover:scale-105 active:scale-95"

@@ -1,9 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@shared/models/auth";
+import { supabase } from "@/lib/supabase";
 
 async function fetchUser(): Promise<User | null> {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError || !session) {
+    return null;
+  }
+
+  // Fetch the local profile to get extra information
   const response = await fetch("/api/auth/user", {
-    credentials: "include",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`
+    }
   });
 
   if (response.status === 401) {
@@ -18,7 +28,8 @@ async function fetchUser(): Promise<User | null> {
 }
 
 async function logout(): Promise<void> {
-  window.location.href = "/api/logout";
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 }
 
 export function useAuth() {
@@ -34,6 +45,7 @@ export function useAuth() {
     mutationFn: logout,
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/user"], null);
+      window.location.href = "/";
     },
   });
 

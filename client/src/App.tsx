@@ -11,6 +11,7 @@ import { Dashboard } from "@/pages/dashboard";
 import { ProfilePage } from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 import { Disc } from "lucide-react";
+import { MatrixBackground } from "@/components/matrix-background";
 
 function ProtectedRoutes() {
   return (
@@ -31,7 +32,7 @@ function Main() {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-background text-primary">
         <Disc className="w-12 h-12 animate-[spin_2s_linear_infinite] shadow-neon-green rounded-full mb-4" />
-        <p className="font-mono text-sm tracking-widest animate-pulse">ESTABLISHING UPLINK...</p>
+        <p className="font-mono text-sm tracking-widest animate-pulse">ESTABLISHING SH2...</p>
       </div>
     );
   }
@@ -47,6 +48,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <MatrixBackground />
         <Main />
         <Toaster />
       </TooltipProvider>

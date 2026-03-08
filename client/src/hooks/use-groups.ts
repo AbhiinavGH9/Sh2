@@ -2,15 +2,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import { type Group, type CreateGroupRequest } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export function useGroups() {
   return useQuery({
     queryKey: [api.groups.list.path],
     queryFn: async () => {
-      const res = await fetch(api.groups.list.path, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch groups");
-      return api.groups.list.responses[200].parse(await res.json());
-    }
+      try {
+        const res = await apiRequest("GET", api.groups.list.path);
+        return api.groups.list.responses[200].parse(await res.json());
+      } catch (err: any) {
+        throw new Error(err.message || "Failed to fetch groups");
+      }
+    },
+    refetchInterval: 5000,
   });
 }
 
@@ -20,27 +25,43 @@ export function useCreateGroup() {
 
   return useMutation({
     mutationFn: async (data: CreateGroupRequest) => {
-      const res = await fetch(api.groups.create.path, {
-        method: api.groups.create.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        if (res.status === 400) {
-          const err = api.groups.create.responses[400].parse(await res.json());
-          throw new Error(err.message);
-        }
-        throw new Error("Failed to create group");
+      try {
+        const res = await apiRequest(api.groups.create.method, api.groups.create.path, data);
+        return api.groups.create.responses[201].parse(await res.json());
+      } catch (err: any) {
+        throw new Error(err.message || "Failed to create group");
       }
-      return api.groups.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.groups.list.path] });
       toast({ title: "Group Created", description: "Your secure channel is ready." });
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast({ title: "Creation Failed", description: err.message, variant: "destructive" });
+    }
+  });
+} export function useDeleteGroup() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (groupId: number) => {
+      try {
+        const res = await apiRequest("DELETE", `/api/groups/${groupId}`);
+        if (!res.ok) {
+          const errorPayload = await res.json().catch(() => ({}));
+          throw new Error(errorPayload.message || "Failed to delete group");
+        }
+      } catch (err: any) {
+        throw new Error(err.message || "Failed to delete group");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.groups.list.path] });
+      toast({ title: "Signal Terminated", description: "Channel has been permanently deleted." });
+    },
+    onError: (err) => {
+      toast({ title: "Deletion Failed", description: err.message, variant: "destructive" });
     }
   });
 }
