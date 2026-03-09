@@ -26,7 +26,7 @@ export function FrequencyDial({
 }: FrequencyDialProps) {
 
   return (
-    <div className="relative p-8 rounded-3xl glass-panel flex flex-col items-center justify-center overflow-hidden w-full border border-white/10 shadow-[inset_0_0_30px_rgba(57,255,20,0.05)]">
+    <div className="relative p-8 rounded-3xl glass-panel flex flex-col items-center justify-center overflow-hidden w-full border border-white/10">
       {/* Background glow when connected */}
       <motion.div
         className="absolute inset-0 opacity-20 pointer-events-none"

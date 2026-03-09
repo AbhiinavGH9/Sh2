@@ -2,12 +2,18 @@ import { useCommunication } from "@/contexts/communication-context";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Radio, Maximize2, Minimize2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function FloatingPill() {
     const { isConnected, frequency, activeUsers } = useCommunication();
     const [location, setLocation] = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    useEffect(() => {
+        if (window.innerWidth < 768) {
+            setIsCollapsed(true);
+        }
+    }, []);
 
     // Show pill ONLY if we are connected AND we are not on the main dashboard (`/`)
     // If you want it visible on the dashboard too (maybe when scrolling down), remove the `location !== "/"` check.
@@ -22,8 +28,8 @@ export function FloatingPill() {
                     exit={{ y: -100, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     className={`fixed top-6 z-50 flex items-center bg-background/80 backdrop-blur-xl border border-white/10 shadow-2xl transition-all duration-300 ${isCollapsed
-                            ? "right-6 rounded-full p-3 hover:bg-background/90 cursor-pointer"
-                            : "left-1/2 -translate-x-1/2 rounded-full px-5 py-2.5 gap-4"
+                        ? "right-6 rounded-full p-3 hover:bg-background/90 cursor-pointer"
+                        : "left-1/2 -translate-x-1/2 rounded-full px-5 py-2.5 gap-4"
                         }`}
                 >
                     {isCollapsed ? (
