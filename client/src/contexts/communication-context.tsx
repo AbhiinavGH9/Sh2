@@ -46,6 +46,7 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
     } : null;
 
     const peerConnections = useRef<Map<string, SimplePeer.Instance>>(new Map());
+    const audioElements = useRef<Map<string, HTMLAudioElement>>(new Map());
     const localStream = useRef<MediaStream | null>(null);
 
     const handleIncomingSignal = useCallback((signal: any) => {
@@ -130,12 +131,23 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
             });
 
             pc.on("stream", (stream) => {
-                const audio = new Audio();
+                let audio = audioElements.current.get(targetUserId);
+                if (!audio) {
+                    audio = new Audio();
+                    audioElements.current.set(targetUserId, audio);
+                }
                 audio.srcObject = stream;
                 audio.play().catch(console.error);
             });
 
             pc.on("close", () => {
+                const audio = audioElements.current.get(targetUserId);
+                if (audio) {
+                    audio.pause();
+                    audio.srcObject = null;
+                    audioElements.current.delete(targetUserId);
+                }
+
                 peerConnections.current.delete(targetUserId);
                 let count = 0;
                 peerConnections.current.forEach(p => {
@@ -146,6 +158,12 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
 
             pc.on("error", (err) => {
                 console.error("SimplePeer error for user", targetUserId, err);
+                const audio = audioElements.current.get(targetUserId);
+                if (audio) {
+                    audio.pause();
+                    audio.srcObject = null;
+                    audioElements.current.delete(targetUserId);
+                }
                 peerConnections.current.delete(targetUserId);
             });
 
@@ -176,6 +194,13 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
         const cleanup = () => {
             peerConnections.current.forEach(pc => pc.destroy());
             peerConnections.current.clear();
+
+            audioElements.current.forEach(audio => {
+                audio.pause();
+                audio.srcObject = null;
+            });
+            audioElements.current.clear();
+
             setActivePeers(0);
 
             // We don't necessarily want to kill the mic on tab change if they remain connected,
@@ -285,6 +310,13 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
 
         peerConnections.current.forEach(pc => pc.destroy());
         peerConnections.current.clear();
+
+        audioElements.current.forEach(audio => {
+            audio.pause();
+            audio.srcObject = null;
+        });
+        audioElements.current.clear();
+
         if (localStream.current) {
             localStream.current.getTracks().forEach(track => track.stop());
             localStream.current = null;
