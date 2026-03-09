@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useSupabaseSignaling } from "@/hooks/use-supabase-signaling";
-import { useAudioVolume } from "@/hooks/use-audio-volume";
+import { useCommunication } from "@/contexts/communication-context";
 import { useGroups, useCreateGroup, useDeleteGroup } from "@/hooks/use-groups";
 import { FrequencyDial } from "@/components/frequency-dial";
 import { ActiveUsersList } from "@/components/active-users-list";
@@ -12,7 +11,6 @@ import { Copy, Plus, Hash, SignalHigh, Radio, Share2, Trash2 } from "lucide-reac
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
-import SimplePeer from "simple-peer";
 import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
@@ -30,252 +28,21 @@ export function Dashboard() {
   const { user: authUser } = useAuth();
   const [activeTab, setActiveTab] = useState("public");
 
-  const [frequency, setFrequency] = useState("144.20");
-  const [isConnected, setIsConnected] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // Default muted
-  const [activePeers, setActivePeers] = useState(0);
-
-  // WebRTC / Supabase hook
-  const fallbackUser = authUser ? {
-    id: authUser.id.toString(),
-    name: `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim() || 'Agent',
-    avatar: authUser.profileImageUrl || undefined
-  } : null;
-  const previousFrequency = useRef<string | null>(null);
-
-  const handleIncomingSignal = useCallback((signal: any) => {
-    if (!isConnected || !authUser) return;
-
-    const { type, payload } = signal;
-    if (type === 'webrtcSignal') {
-      // P2P Cross-Talk Protection: Only process offers/answers explicitly targeted at our user ID
-      // (Initial broadcast joins might not have a targetUserId, which is fine, but direct signals must match)
-      if (payload.targetUserId && payload.targetUserId !== authUser.id) {
-        return;
-      }
-
-      let pc = peerConnections.current.get(payload.fromUserId);
-
-      if (!pc) {
-        // Deterministic Initiator
-        const isInitiator = String(authUser.id) > String(payload.fromUserId);
-
-        try {
-          // Preemptively create the peer on first signal if it wasn't tracked locally yet
-          const newPc = new SimplePeer({
-            initiator: isInitiator,
-            stream: localStream.current || undefined,
-            trickle: true,
-            config: {
-              iceServers: [
-                { urls: "stun:stun.l.google.com:19302" },
-                { urls: "stun:global.stun.twilio.com:3478" }
-              ]
-            }
-          });
-
-          peerConnections.current.set(payload.fromUserId, newPc);
-
-          newPc.on("signal", (data) => {
-            // we don't have emitSignal immediately in scope unless we hoist or pass it, but simplepeer buffers
-          });
-
-          // (Note: we actually initialize peers further down in recreatePeer or via FrequencyState. 
-          // We will hoist emitSignal out of useSupabaseSignaling to avoid circular deps if needed,
-          // but for now we expect `createPeer` logic to handle initializations via useEffect)
-        } catch (e) { }
-
-        // Actually handle it via createPeer abstraction normally
-      }
-
-      pc = peerConnections.current.get(payload.fromUserId);
-      if (pc) {
-        pc.signal(payload.signalData);
-      }
-    }
-  }, [isConnected, authUser]);
-
-  const { connected: wsConnected, activeUsers: frequencyStateUsers, emitSignal, updateSpeakingState } = useSupabaseSignaling(
+  const {
     frequency,
-    authUser ? { id: authUser.id, name: `${authUser.firstName} ${authUser.lastName}`, avatar: authUser.profileImageUrl || undefined } : null,
+    setFrequency,
     isConnected,
-    handleIncomingSignal
-  );
-  const { isSpeaking, error: audioError } = useAudioVolume(isConnected && !isMuted, 20);
+    isMuted,
+    setIsMuted,
+    activePeers,
+    activeUsers: frequencyStateUsers,
+    connect: handleConnect,
+    disconnect: handleDisconnect,
+    audioError,
+    scanFrequency
+  } = useCommunication();
+
   const { toast } = useToast();
-
-  const peerConnections = useRef<Map<string, SimplePeer.Instance>>(new Map());
-  const localStream = useRef<MediaStream | null>(null);
-
-  const createPeer = useCallback((targetUserId: string, initiator: boolean, incomingSignal?: any) => {
-    if (peerConnections.current.has(targetUserId)) return;
-
-    try {
-      const pc = new SimplePeer({
-        initiator,
-        stream: localStream.current || undefined,
-        trickle: true,
-        config: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:global.stun.twilio.com:3478" }
-          ]
-        }
-      });
-
-      peerConnections.current.set(targetUserId, pc);
-
-      pc.on("signal", (data) => {
-        emitSignal(targetUserId, data);
-      });
-
-      pc.on("connect", () => {
-        let count = 0;
-        peerConnections.current.forEach(p => {
-          if (p.connected) count++;
-        });
-        setActivePeers(count);
-      });
-
-      pc.on("stream", (stream) => {
-        const audio = new Audio();
-        audio.srcObject = stream;
-        audio.play().catch(console.error);
-      });
-
-      pc.on("close", () => {
-        peerConnections.current.delete(targetUserId);
-        let count = 0;
-        peerConnections.current.forEach(p => {
-          if (p.connected) count++;
-        });
-        setActivePeers(count);
-      });
-
-      pc.on("error", (err) => {
-        console.error("SimplePeer error for user", targetUserId, err);
-        peerConnections.current.delete(targetUserId);
-      });
-
-      if (incomingSignal) {
-        pc.signal(incomingSignal);
-      }
-    } catch (err) {
-      console.error("Failed to create SimplePeer", err);
-    }
-  }, [frequency, emitSignal]);
-
-  // Handle Voice and Signaling Connection Flow
-  useEffect(() => {
-    if (!isConnected || !wsConnected || !authUser) return;
-
-    const cleanup = () => {
-      peerConnections.current.forEach(pc => pc.destroy());
-      peerConnections.current.clear();
-      if (localStream.current) {
-        localStream.current.getTracks().forEach(track => track.stop());
-        localStream.current = null;
-      }
-      setActivePeers(0);
-    };
-
-    return cleanup;
-  }, [isConnected, wsConnected, frequency, authUser]);
-
-  // Synchronize new Presence Connections
-  useEffect(() => {
-    if (!isConnected || !frequencyStateUsers) return;
-
-    frequencyStateUsers.forEach((u) => {
-      if (u.id !== String(authUser?.id) && !peerConnections.current.has(u.id)) {
-        // Deterministic Initiator
-        const isInitiator = String(authUser?.id || "") > String(u.id);
-        createPeer(u.id, isInitiator);
-      }
-    });
-  }, [frequencyStateUsers, isConnected, authUser, createPeer]);
-
-  // Handle Speaking State changes
-  useEffect(() => {
-    if (isConnected) {
-      updateSpeakingState(isSpeaking);
-    }
-  }, [isSpeaking, isConnected, updateSpeakingState]);
-
-  // Handle hardware muting
-  useEffect(() => {
-    if (localStream.current) {
-      localStream.current.getAudioTracks().forEach(track => {
-        track.enabled = !isMuted;
-      });
-    }
-  }, [isMuted]);
-
-  const handleConnect = async () => {
-    try {
-      if (!localStream.current) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getAudioTracks().forEach(track => {
-          track.enabled = false;
-        });
-        localStream.current = stream;
-      }
-      setIsMuted(true);
-      setIsConnected(true);
-      toast({ title: "Connected", description: `Tuned to ${frequency} MHz. Microphone is muted.` });
-    } catch (err) {
-      toast({ title: "Microphone Access Denied", description: "Sh2 requires audio permissions to establish a link.", variant: "destructive" });
-      setIsConnected(false);
-    }
-  };
-
-  const handleDisconnect = () => {
-    setIsConnected(false);
-    toast({ title: "Disconnected", description: "Channel closed." });
-
-    // Clear WebRTC states
-    peerConnections.current.forEach(pc => pc.destroy());
-    peerConnections.current.clear();
-    if (localStream.current) {
-      localStream.current.getTracks().forEach(track => track.stop());
-      localStream.current = null;
-    }
-    setActivePeers(0);
-  };
-
-  // Push-To-Talk Mechanics
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.code === 'Space' && isConnected) {
-        e.preventDefault();
-        if (isMuted) setIsMuted(false);
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.code === 'Space' && isConnected) {
-        e.preventDefault();
-        if (!isMuted) setIsMuted(true);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [isConnected, isMuted]);
-
-  const scanFrequency = () => {
-    const min = 100.00;
-    const max = 150.00;
-    const nextFreq = (Math.random() * (max - min) + min).toFixed(2);
-    setFrequency(nextFreq);
-  };
 
   // Duo Tab State
   const [duoFreq, setDuoFreq] = useState("");
@@ -310,16 +77,6 @@ export function Dashboard() {
       setJoinLink("");
     }
   };
-
-  // Parse URL for ?freq= to support share links
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const freqParam = params.get('freq');
-    if (freqParam && !isConnected) {
-      setFrequency(freqParam);
-      window.history.replaceState({}, document.title, "/");
-    }
-  }, [isConnected]);
 
   // Groups Tab
   const { data: groups } = useGroups();
@@ -367,8 +124,8 @@ export function Dashboard() {
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="flex items-center gap-2 bg-secondary/30 p-2 rounded-2xl border border-white/5 backdrop-blur-sm">
-            <div className={`w-2 h-2 rounded-full shadow-neon-green animate-pulse ${wsConnected ? 'bg-primary' : 'bg-muted'}`} />
-            <span className="text-[10px] font-mono tracking-widest uppercase opacity-80">Link Status: {wsConnected ? "Active" : "Offline"}</span>
+            <div className={`w-2 h-2 rounded-full shadow-neon-green animate-pulse ${isConnected ? 'bg-primary' : 'bg-muted'}`} />
+            <span className="text-[10px] font-mono tracking-widest uppercase opacity-80">Link Status: {isConnected ? "Active" : "Offline"}</span>
           </div>
           <div className="flex items-center gap-2 bg-secondary/30 p-2 rounded-2xl border border-white/5 backdrop-blur-sm">
             <div className={`w-2 h-2 rounded-full animate-pulse ${activePeers > 0 ? 'bg-accent shadow-neon-orange' : 'bg-muted'}`} />
@@ -439,7 +196,7 @@ export function Dashboard() {
                     <div className="w-full p-10 bg-background/50 rounded-3xl border border-accent/30 text-center shadow-[inset_0_0_30px_rgba(255,153,0,0.05)] backdrop-blur-xl relative group overflow-hidden">
                       <div className="text-[10px] font-mono text-muted-foreground mb-4 uppercase tracking-[0.3em]">Allocated Freq</div>
                       <div className="text-5xl md:text-6xl font-display font-black text-accent text-shadow-neon-orange flex flex-col items-center justify-center gap-2 break-all w-full min-w-0 flex-wrap">
-                        {duoFreq}
+                        <span className="break-all">{duoFreq}</span>
                         <span className="text-xl opacity-30 font-mono mb-2">MHz</span>
                       </div>
                       <div className="absolute -inset-0.5 bg-accent/20 rounded-3xl blur opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none" />

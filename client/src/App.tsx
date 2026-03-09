@@ -12,6 +12,7 @@ import { ProfilePage } from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 import { Disc } from "lucide-react";
 import { MatrixBackground } from "@/components/matrix-background";
+import { CommunicationProvider } from "@/contexts/communication-context";
 
 function ProtectedRoutes() {
   return (
@@ -48,9 +49,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <MatrixBackground />
-        <Main />
-        <Toaster />
+        <CommunicationProvider>
+          <MatrixBackground />
+          <Main />
+          <Toaster />
+        </CommunicationProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

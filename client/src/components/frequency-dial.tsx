@@ -66,7 +66,7 @@ export function FrequencyDial({
                 onFrequencyChange(`${val || '0'}.${frequency.split('.')[1] || '00'}`);
               }}
               disabled={isConnected}
-              className={`w-28 md:w-36 text-center text-5xl md:text-7xl font-display font-black tracking-tighter bg-transparent border-none outline-none focus:ring-0 p-0 ${isConnected ? 'text-foreground/80' : 'text-foreground'}`}
+              className={`w-20 sm:w-28 md:w-36 text-center text-4xl sm:text-5xl md:text-7xl font-display font-black tracking-tighter bg-transparent border-none outline-none focus:ring-0 p-0 ${isConnected ? 'text-foreground/80' : 'text-foreground'}`}
             />
             <button
               onClick={() => {
@@ -82,7 +82,7 @@ export function FrequencyDial({
             </button>
           </div>
 
-          <span className="text-4xl md:text-6xl font-display font-black self-center mb-6 text-primary">.</span>
+          <span className="text-3xl sm:text-4xl md:text-6xl font-display font-black self-center mb-6 text-primary">.</span>
 
           {/* Fractional Part */}
           <div className="flex flex-col items-center">
@@ -106,7 +106,7 @@ export function FrequencyDial({
                 onFrequencyChange(`${frequency.split('.')[0] || '0'}.${val}`);
               }}
               disabled={isConnected}
-              className={`w-20 md:w-28 text-center text-5xl md:text-7xl font-display font-black tracking-tighter bg-transparent border-none outline-none focus:ring-0 p-0 ${isConnected ? 'text-foreground/80' : 'text-foreground'}`}
+              className={`w-16 sm:w-20 md:w-28 text-center text-4xl sm:text-5xl md:text-7xl font-display font-black tracking-tighter bg-transparent border-none outline-none focus:ring-0 p-0 ${isConnected ? 'text-foreground/80' : 'text-foreground'}`}
             />
             <button
               onClick={() => {

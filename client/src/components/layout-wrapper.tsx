@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Activity } from "lucide-react";
 import { MatrixRain } from "./matrix-rain";
+import { FloatingPill } from "./floating-pill";
 
 export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -23,6 +24,7 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
               <span className="text-xs font-mono text-primary font-bold">Sh2 SYS_ONLINE</span>
             </div>
           </header>
+          <FloatingPill />
           <main className="flex-1 overflow-y-auto w-full pt-16">
             {children}
           </main>
