@@ -19,6 +19,29 @@ interface CommunicationContextType {
     scanFrequency: () => void;
 }
 
+// SDP Manipulation to strictly prioritize Opus codec
+function preferOpus(sdp: string) {
+    if (!sdp.includes("opus")) return sdp;
+    const lines = sdp.split('\r\n');
+    const mLineIndex = lines.findIndex(line => line.startsWith('m=audio'));
+    if (mLineIndex === -1) return sdp;
+
+    const opusRtpLine = lines.find(line => line.startsWith('a=rtpmap:') && line.includes('opus/48000'));
+    if (!opusRtpLine) return sdp;
+    const opusPayloadType = opusRtpLine.split(':')[1].split(' ')[0];
+
+    // Rearrange m=audio line to place Opus first
+    const mLineParts = lines[mLineIndex].split(' ');
+    const portAndProto = mLineParts.slice(0, 3);
+    let payloadTypes = mLineParts.slice(3);
+
+    payloadTypes = payloadTypes.filter(pt => pt !== opusPayloadType);
+    payloadTypes.unshift(opusPayloadType);
+
+    lines[mLineIndex] = [...portAndProto, ...payloadTypes].join(' ');
+    return lines.join('\r\n');
+}
+
 const CommunicationContext = createContext<CommunicationContextType | undefined>(undefined);
 
 export function CommunicationProvider({ children }: { children: ReactNode }) {
@@ -68,6 +91,7 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
                         initiator: isInitiator,
                         stream: localStream.current || undefined,
                         trickle: true,
+                        sdpTransform: preferOpus,
                         config: {
                             iceServers: [
                                 { urls: "stun:stun.l.google.com:19302" },
@@ -108,6 +132,7 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
                 initiator,
                 stream: localStream.current || undefined,
                 trickle: true,
+                sdpTransform: preferOpus,
                 config: {
                     iceServers: [
                         { urls: "stun:stun.l.google.com:19302" },
@@ -251,12 +276,18 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
         }
     }, [isMuted]);
 
+    // SPACE PTT DEBOUNCING
+    const isSpaceDown = useRef(false);
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
             if (e.code === 'Space' && isConnected) {
                 e.preventDefault();
-                if (isMuted) setIsMuted(false);
+                if (!isSpaceDown.current) {
+                    isSpaceDown.current = true;
+                    if (isMuted) setIsMuted(false);
+                }
             }
         };
 
@@ -264,6 +295,7 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
             if (e.code === 'Space' && isConnected) {
                 e.preventDefault();
+                isSpaceDown.current = false;
                 if (!isMuted) setIsMuted(true);
             }
         };
@@ -284,7 +316,9 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
                     audio: {
                         echoCancellation: true,
                         noiseSuppression: true,
-                        autoGainControl: true
+                        autoGainControl: true,
+                        channelCount: 1,
+                        sampleRate: 48000
                     }
                 });
                 stream.getAudioTracks().forEach(track => {
