@@ -144,7 +144,7 @@ export function Dashboard() {
         <div className="mt-8 space-y-8">
           {/* PUBLIC TAB */}
           <TabsContent value="public" className="m-0 focus-visible:outline-none">
-            <div className="flex flex-col items-center gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col items-center gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full max-w-md mx-auto">
               <FrequencyDial
                 frequency={frequency}
                 onFrequencyChange={setFrequency}

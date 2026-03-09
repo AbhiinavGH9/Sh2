@@ -26,7 +26,7 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
     const { toast } = useToast();
 
     const [frequency, setFrequency] = useState(() => localStorage.getItem("sh2_frequency") || "144.20");
-    const [isConnected, setIsConnected] = useState(() => localStorage.getItem("sh2_connected") === "true");
+    const [isConnected, setIsConnected] = useState(false); // Do not default to true; await stream first
     const [isMuted, setIsMuted] = useState(true);
     const [activePeers, setActivePeers] = useState(0);
 
@@ -263,15 +263,18 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
             }
             setIsMuted(true);
             setIsConnected(true);
+            localStorage.setItem("sh2_connected", "true");
             toast({ title: "Connected", description: `Tuned to \${frequency} MHz. Microphone is muted.` });
         } catch (err) {
             toast({ title: "Microphone Access Denied", description: "Sh2 requires audio permissions to establish a link.", variant: "destructive" });
             setIsConnected(false);
+            localStorage.setItem("sh2_connected", "false");
         }
     };
 
     const disconnect = () => {
         setIsConnected(false);
+        localStorage.setItem("sh2_connected", "false");
         toast({ title: "Disconnected", description: "Channel closed." });
 
         peerConnections.current.forEach(pc => pc.destroy());
@@ -292,10 +295,11 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
 
     // Try to reconnect automatically if it was connected on refresh
     useEffect(() => {
-        if (isConnected && authUser && !localStream.current) {
+        const wasConnected = localStorage.getItem("sh2_connected") === "true";
+        if (wasConnected && authUser && !localStream.current && !isConnected) {
             connect();
         }
-    }, [authUser]);
+    }, [authUser, isConnected]);
 
     return (
         <CommunicationContext.Provider
