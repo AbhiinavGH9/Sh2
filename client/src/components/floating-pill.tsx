@@ -15,6 +15,14 @@ export function FloatingPill() {
         }
     }, []);
 
+    const handlePillClick = () => {
+        if (window.innerWidth < 768) {
+            setIsCollapsed(true);
+        } else {
+            setLocation("/");
+        }
+    };
+
     // Show pill ONLY if we are connected AND we are not on the main dashboard (`/`)
     // If you want it visible on the dashboard too (maybe when scrolling down), remove the `location !== "/"` check.
     const isVisible = isConnected && location !== "/";
@@ -23,17 +31,19 @@ export function FloatingPill() {
         <AnimatePresence>
             {isVisible && (
                 <motion.div
+                    layout
                     initial={{ y: -100, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -100, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className={`fixed top-6 z-50 flex items-center bg-background/80 backdrop-blur-xl border border-white/10 shadow-2xl transition-all duration-300 ${isCollapsed
+                    className={`fixed top-6 z-50 flex items-center bg-background/80 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden ${isCollapsed
                         ? "right-6 rounded-full p-3 hover:bg-background/90 cursor-pointer"
                         : "left-1/2 -translate-x-1/2 rounded-full px-5 py-2.5 gap-4"
                         }`}
                 >
                     {isCollapsed ? (
-                        <div
+                        <motion.div
+                            layout
                             className="relative flex items-center justify-center animate-pulse"
                             onClick={() => setIsCollapsed(false)}
                         >
@@ -43,13 +53,14 @@ export function FloatingPill() {
                             {activeUsers.some(u => u.isSpeaking) && (
                                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full ring-2 ring-background animate-bounce" />
                             )}
-                        </div>
+                        </motion.div>
                     ) : (
                         <>
                             {/* Frequency Signal */}
-                            <div
-                                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={() => setLocation("/")}
+                            <motion.div
+                                layout
+                                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity whitespace-nowrap"
+                                onClick={handlePillClick}
                             >
                                 <div className="relative flex items-center justify-center">
                                     <Radio className="w-4 h-4 text-primary relative z-10" />
@@ -59,13 +70,14 @@ export function FloatingPill() {
                                     {frequency}
                                     <span className="text-[10px] font-mono opacity-50 ml-1 uppercase">MHz</span>
                                 </span>
-                            </div>
+                            </motion.div>
 
                             {/* Active User Avatars */}
                             {activeUsers.length > 0 && (
-                                <div
+                                <motion.div
+                                    layout
                                     className="flex items-center -space-x-2 border-l border-white/10 pl-4 ml-1 cursor-pointer hover:opacity-80 transition-opacity"
-                                    onClick={() => setLocation("/")}
+                                    onClick={handlePillClick}
                                 >
                                     {activeUsers.slice(0, 3).map((user) => (
                                         <div
@@ -87,7 +99,7 @@ export function FloatingPill() {
                                             +{activeUsers.length - 3}
                                         </div>
                                     )}
-                                </div>
+                                </motion.div>
                             )}
 
                             {/* Collapse Toggle for Mobile */}

@@ -255,7 +255,13 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
     const connect = async () => {
         try {
             if (!localStream.current) {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
                 stream.getAudioTracks().forEach(track => {
                     track.enabled = false;
                 });
@@ -264,7 +270,7 @@ export function CommunicationProvider({ children }: { children: ReactNode }) {
             setIsMuted(true);
             setIsConnected(true);
             localStorage.setItem("sh2_connected", "true");
-            toast({ title: "Connected", description: `Tuned to \${frequency} MHz. Microphone is muted.` });
+            toast({ title: "Connected", description: `Tuned to ${frequency} MHz. Microphone is muted.` });
         } catch (err) {
             toast({ title: "Microphone Access Denied", description: "Sh2 requires audio permissions to establish a link.", variant: "destructive" });
             setIsConnected(false);
